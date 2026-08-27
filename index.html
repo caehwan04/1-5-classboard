@@ -13,14 +13,19 @@
         
         ul { list-style: none; }
         li { padding: 10px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; align-items: center; }
-        .input-group { display: flex; gap: 8px; margin-bottom: 15px; }
-        .input-group input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1; }
+        .input-group { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .input-group input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1; min-width: 120px; }
         
         button { cursor: pointer; border: none; border-radius: 4px; padding: 6px 12px; font-weight: bold; }
         .btn-add { background: #4a90e2; color: white; }
         .btn-add:hover { background: #357abd; }
         .btn-del { background: #ff4d4d; color: white; padding: 4px 8px; font-size: 0.8rem; }
         .btn-del:hover { background: #cc0000; }
+
+        /* 수행평가 링크 스타일 */
+        .task-link { color: #2b6cb0; font-weight: bold; text-decoration: underline; margin-right: 6px; }
+        .task-link:hover { color: #1a365d; }
+        .link-badge { background: #ebf8ff; color: #3182ce; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; margin-left: 5px; text-decoration: none; border: 1px solid #bee3f8; }
 
         /* 시간표 테이블 스타일 */
         table { width: 100%; border-collapse: collapse; text-align: center; margin-top: 5px; }
@@ -66,12 +71,13 @@
         </table>
     </div>
 
-    <!-- 📝 수행평가 일정 -->
+    <!-- 📝 수행평가 일정 (프로그램 링크 추가 기능) -->
     <div class="card">
-        <h2>📝 수행평가 일정</h2>
+        <h2>📝 수행평가 일정 및 과제제출</h2>
         <div class="input-group">
             <input type="text" id="taskInput" placeholder="수행평가 내용">
-            <input type="text" id="taskSub" placeholder="D-day (예: D-3)" style="flex: 0.4;">
+            <input type="text" id="taskLink" placeholder="프로그램 링크 주소(선택) https://...">
+            <input type="text" id="taskSub" placeholder="D-day (예: D-3)" style="flex: 0.3;">
             <button class="btn-add" id="btnTask">추가</button>
         </div>
         <ul id="taskList"></ul>
@@ -109,7 +115,7 @@
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
-        // [추가 기능] Firebase DB에 데이터 저장
+        // [일반 항목 추가]
         function addItem(type, textInputId, subInputId) {
             const textInput = document.getElementById(textInputId);
             const subInput = document.getElementById(subInputId);
@@ -129,7 +135,35 @@
             subInput.value = '';
         }
 
-        // [실시간 조회 및 삭제 기능] DB 변경 시 화면 자동 업데이트
+        // [수행평가 전용 추가 (링크 포함)]
+        function addTaskItem() {
+            const textInput = document.getElementById('taskInput');
+            const linkInput = document.getElementById('taskLink');
+            const subInput = document.getElementById('taskSub');
+
+            if (!textInput.value.trim()) {
+                alert("수행평가 내용을 입력해주세요!");
+                return;
+            }
+
+            let url = linkInput.value.trim();
+            if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url; // http 주소 자동 보정
+            }
+
+            const dbRef = ref(database, 'task');
+            push(dbRef, {
+                text: textInput.value,
+                link: url || '',
+                sub: subInput.value || '-'
+            });
+
+            textInput.value = '';
+            linkInput.value = '';
+            subInput.value = '';
+        }
+
+        // [실시간 조회 및 삭제 기능]
         function listenData(type, listId) {
             const dbRef = ref(database, type);
             onValue(dbRef, (snapshot) => {
@@ -141,12 +175,29 @@
                     Object.keys(data).forEach((key) => {
                         const item = data[key];
                         const li = document.createElement('li');
+
+                        // 수행평가 항목일 경우 링크 연결 처리
+                        let contentHtml = '';
+                        if (type === 'task' && item.link) {
+                            contentHtml = `
+                                <span>
+                                    <a href="${item.link}" target="_blank" class="task-link">${item.text}</a>
+                                    <a href="${item.link}" target="_blank" class="link-badge">🚀 바로가기</a>
+                                    <b style="color: #4a90e2; margin-left: 10px;">${item.sub}</b>
+                                </span>
+                            `;
+                        } else {
+                            contentHtml = `
+                                <span>${item.text} <b style="color: #4a90e2; margin-left: 10px;">${item.sub}</b></span>
+                            `;
+                        }
+
                         li.innerHTML = `
-                            <span>${item.text} <b style="color: #4a90e2; margin-left: 10px;">${item.sub}</b></span>
+                            ${contentHtml}
                             <button class="btn-del">삭제</button>
                         `;
                         
-                        // 삭제 버튼 클릭 시 해당 데이터 제거
+                        // 삭제 버튼 이벤트
                         li.querySelector('.btn-del').addEventListener('click', () => {
                             remove(ref(database, `${type}/${key}`));
                         });
@@ -157,12 +208,12 @@
             });
         }
 
-        // 버튼 클릭 이벤트 바인딩
+        // 버튼 클릭 이벤트 연결
         document.getElementById('btnNotice').addEventListener('click', () => addItem('notice', 'noticeInput', 'noticeSub'));
-        document.getElementById('btnTask').addEventListener('click', () => addItem('task', 'taskInput', 'taskSub'));
+        document.getElementById('btnTask').addEventListener('click', addTaskItem);
         document.getElementById('btnCareer').addEventListener('click', () => addItem('career', 'careerInput', 'careerSub'));
 
-        // 실시간 동기화 시작
+        // 실시간 대기 시작
         listenData('notice', 'noticeList');
         listenData('task', 'taskList');
         listenData('career', 'careerList');
