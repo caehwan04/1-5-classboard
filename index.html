@@ -1,1 +1,40 @@
+HTML
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우리반 학급 게시판</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: #f5f6fa; color: #333; padding: 20px; }
+        header { background: #4a90e2; color: white; padding: 20px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h2 { color: #4a90e2; margin-bottom: 10px; border-bottom: 2px solid #e1e8ef; padding-bottom: 5px; }
+        ul { list-style: none; }
+        li { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>3학년 1반 학급 온라인 게시판</h1>
+        <p>GitHub Pages로 배포된 학급 전용 웹사이트입니다.</p>
+    </header>
 
+    <div class="card">
+        <h2>📢 학급 안내사항</h2>
+        <ul>
+            <li><span>이번 주 금요일 학급 청소 구역 변경</span><span>08/27</span></li>
+            <li><span>체험학습 신청서 제출 안내</span><span>08/25</span></li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>📝 수행평가 일정</h2>
+        <ul>
+            <li><span>국어 독서감상문 제출</span><span style="color:red; font-weight:bold;">D-3</span></li>
+            <li><span>수학 포트폴리오 제출</span><span style="color:red; font-weight:bold;">D-7</span></li>
+        </ul>
+    </div>
+</body>
+</html>
