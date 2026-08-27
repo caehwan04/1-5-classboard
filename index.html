@@ -29,9 +29,14 @@
         .time-tag { font-size: 0.8rem; color: #888; margin-left: 8px; font-weight: normal; }
         .sub-tag { color: #4a90e2; font-weight: bold; margin-left: 6px; }
 
-        /* 더보기 버튼 스타일 */
-        .btn-more { width: 100%; background: #f0f4f9; color: #4a90e2; border: 1px solid #d0dbe7; padding: 10px; margin-top: 10px; font-size: 0.9rem; border-radius: 6px; }
-        .btn-more:hover { background: #e1eaf5; }
+        /* 검색 영역 스타일 */
+        .search-card { background: #eef6ff; border: 2px solid #4a90e2; }
+        .search-input { width: 100%; padding: 12px; border: 1px solid #4a90e2; border-radius: 6px; font-size: 1rem; outline: none; }
+        .search-info { margin-top: 8px; font-size: 0.85rem; color: #555; }
+
+        /* 더보기/접기 토글 버튼 스타일 */
+        .btn-toggle { width: 100%; background: #f0f4f9; color: #4a90e2; border: 1px solid #d0dbe7; padding: 10px; margin-top: 10px; font-size: 0.9rem; border-radius: 6px; }
+        .btn-toggle:hover { background: #e1eaf5; }
 
         /* 이미지 스타일 */
         .attached-img { max-width: 250px; max-height: 200px; border-radius: 6px; border: 1px solid #ddd; margin-top: 5px; cursor: pointer; object-fit: cover; }
@@ -59,6 +64,8 @@
         th, td { border: 1px solid #e1e8ef; padding: 8px; font-size: 0.95rem; }
         th { background-color: #f0f4f9; color: #4a90e2; font-weight: bold; }
         .empty-cell { background-color: #fafafa; color: #ccc; }
+        
+        .no-result { font-size: 0.9rem; color: #999; padding: 10px 0; text-align: center; }
     </style>
 </head>
 <body>
@@ -68,17 +75,23 @@
         <p>버튼으로 추가/삭제 시 다른 모든 친구들에게 실시간으로 반영됩니다.</p>
     </header>
 
+    <!-- 🔍 실시간 게시물 검색 -->
+    <div class="card search-card">
+        <h2>🔍 게시물 검색</h2>
+        <input type="text" id="searchInput" class="search-input" placeholder="검색할 단어를 입력하세요 (예: 수학, 준비물, 안내)">
+        <div class="search-info" id="searchInfo"></div>
+    </div>
+
     <!-- 📢 학급 안내사항 -->
     <div class="card">
         <h2>📢 학급 안내사항</h2>
         <div class="input-group">
             <input type="text" id="noticeInput" placeholder="공지 내용 입력">
-            <input type="text" id="noticeSub" placeholder="날짜 (예: 08/27)" style="flex: 0.3;">
             <input type="file" id="noticeImg" accept="image/*">
             <button class="btn-add" id="btnNotice">추가</button>
         </div>
         <ul id="noticeList"></ul>
-        <button class="btn-more" id="moreNotice" style="display: none;">👇 이전 안내사항 더보기</button>
+        <button class="btn-toggle" id="toggleNotice" style="display: none;">👇 더보기</button>
     </div>
 
     <!-- 🗓️ 주간 시간표 -->
@@ -117,7 +130,7 @@
             <button class="btn-add" id="btnTask">추가</button>
         </div>
         <ul id="taskList"></ul>
-        <button class="btn-more" id="moreTask" style="display: none;">👇 이전 수행평가 더보기</button>
+        <button class="btn-toggle" id="toggleTask" style="display: none;">👇 더보기</button>
     </div>
 
     <!-- 🎓 진로 및 진학 정보 -->
@@ -125,12 +138,11 @@
         <h2>🎓 진로 및 진학 정보</h2>
         <div class="input-group">
             <input type="text" id="careerInput" placeholder="진로/진학 소식">
-            <input type="text" id="careerSub" placeholder="비고 (선택)" style="flex: 0.3;">
             <input type="file" id="careerImg" accept="image/*">
             <button class="btn-add" id="btnCareer">추가</button>
         </div>
         <ul id="careerList"></ul>
-        <button class="btn-more" id="moreCareer" style="display: none;">👇 이전 진로정보 더보기</button>
+        <button class="btn-toggle" id="toggleCareer" style="display: none;">👇 더보기</button>
     </div>
 
     <!-- Firebase SDK 불러오기 및 스크립트 실행 -->
@@ -152,11 +164,13 @@
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
-        // 기본 표시 개수: 3개
-        const PAGE_SIZE = 3; 
-        const viewLimits = { notice: PAGE_SIZE, task: PAGE_SIZE, career: PAGE_SIZE };
+        // 상태 관리
+        const INITIAL_LIMIT = 3;
+        const expandedState = { notice: false, task: false, career: false };
+        const rawDataCache = { notice: null, task: null, career: null };
+        let searchKeyword = "";
 
-        // 현재 날짜 및 시간 생성
+        // 작성 시간 포맷팅
         function getFormattedDate() {
             const now = new Date();
             const year = now.getFullYear();
@@ -167,7 +181,7 @@
             return `${year}.${month}.${day} ${hours}:${minutes}`;
         }
 
-        // 이미지 업로드 (ImgBB API 사용)
+        // ImgBB 이미지 업로드
         async function uploadImage(fileInput) {
             if (!fileInput || !fileInput.files[0]) return null;
             
@@ -224,76 +238,126 @@
             if (linkInput) linkInput.value = '';
         }
 
-        // 실시간 조회 및 더보기 처리 (게시글 4개 이상 시 더보기 버튼 노출)
-        function listenData(type, listId, moreBtnId) {
-            const dbRef = ref(database, type);
-            onValue(dbRef, (snapshot) => {
-                const listElement = document.getElementById(listId);
-                const moreBtn = document.getElementById(moreBtnId);
-                listElement.innerHTML = '';
-                
-                const rawData = snapshot.val();
-                if (!rawData) {
-                    moreBtn.style.display = 'none';
-                    return;
+        // 화면 랜더링 함수
+        function renderCategory(type, listId, toggleBtnId) {
+            const listElement = document.getElementById(listId);
+            const toggleBtn = document.getElementById(toggleBtnId);
+            listElement.innerHTML = '';
+
+            const rawData = rawDataCache[type];
+            if (!rawData) {
+                toggleBtn.style.display = 'none';
+                return;
+            }
+
+            // 검색어가 있을 경우 전체 키 중 검색어가 일치하는 키만 필터링
+            const allKeys = Object.keys(rawData).reverse();
+            let filteredKeys = allKeys;
+
+            if (searchKeyword.trim() !== '') {
+                filteredKeys = allKeys.filter(key => {
+                    const item = rawData[key];
+                    const content = `${item.text} ${item.sub || ''}`.toLowerCase();
+                    return content.includes(searchKeyword.toLowerCase());
+                });
+            }
+
+            const totalCount = filteredKeys.length;
+            const isExpanded = expandedState[type];
+            
+            // 검색 중이거나 더보기 상태일 때는 전체 노출, 그 외에는 3개만 표시
+            const visibleKeys = (searchKeyword || isExpanded) ? filteredKeys : filteredKeys.slice(0, INITIAL_LIMIT);
+
+            if (totalCount === 0 && searchKeyword) {
+                listElement.innerHTML = '<li class="no-result">검색 결과가 없습니다.</li>';
+                toggleBtn.style.display = 'none';
+                return;
+            }
+
+            visibleKeys.forEach((key) => {
+                const item = rawData[key];
+                const li = document.createElement('li');
+
+                let titleHtml = item.text;
+                if (item.link) {
+                    titleHtml = `<a href="${item.link}" target="_blank" class="task-link">${item.text}</a><a href="${item.link}" target="_blank" class="link-badge">🚀 바로가기</a>`;
                 }
 
-                const keys = Object.keys(rawData).reverse(); // 최신순 정렬
-                const totalCount = keys.length;
-                const limit = viewLimits[type];
-                const visibleKeys = keys.slice(0, limit);
+                let subHtml = item.sub ? `<span class="sub-tag">${item.sub}</span>` : '';
+                let timeHtml = item.createdAt ? `<span class="time-tag">(${item.createdAt})</span>` : '';
+                let imgHtml = item.img ? `<a href="${item.img}" target="_blank"><img src="${item.img}" class="attached-img" alt="첨부 이미지"></a>` : '';
 
-                visibleKeys.forEach((key) => {
-                    const item = rawData[key];
-                    const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="item-header">
+                        <span>${titleHtml} ${subHtml} ${timeHtml}</span>
+                        <button class="btn-del">삭제</button>
+                    </div>
+                    ${imgHtml}
+                `;
 
-                    let titleHtml = item.text;
-                    if (item.link) {
-                        titleHtml = `<a href="${item.link}" target="_blank" class="task-link">${item.text}</a><a href="${item.link}" target="_blank" class="link-badge">🚀 바로가기</a>`;
-                    }
-
-                    let subHtml = item.sub ? `<span class="sub-tag">${item.sub}</span>` : '';
-                    let timeHtml = item.createdAt ? `<span class="time-tag">(${item.createdAt})</span>` : '';
-                    let imgHtml = item.img ? `<a href="${item.img}" target="_blank"><img src="${item.img}" class="attached-img" alt="첨부 이미지"></a>` : '';
-
-                    li.innerHTML = `
-                        <div class="item-header">
-                            <span>${titleHtml} ${subHtml} ${timeHtml}</span>
-                            <button class="btn-del">삭제</button>
-                        </div>
-                        ${imgHtml}
-                    `;
-
-                    li.querySelector('.btn-del').addEventListener('click', () => {
-                        remove(ref(database, `${type}/${key}`));
-                    });
-
-                    listElement.appendChild(li);
+                li.querySelector('.btn-del').addEventListener('click', () => {
+                    remove(ref(database, `${type}/${key}`));
                 });
 
-                // 총 개수가 4개 이상이고, 현재 보고 있는 개수가 전체보다 적을 때만 더보기 버튼 노출
-                if (totalCount >= 4 && totalCount > limit) {
-                    moreBtn.style.display = 'block';
-                } else {
-                    moreBtn.style.display = 'none';
-                }
+                listElement.appendChild(li);
+            });
+
+            // 검색어 없을 때, 개수가 4개 이상이면 접기/더보기 버튼 활성화
+            if (!searchKeyword && totalCount >= 4) {
+                toggleBtn.style.display = 'block';
+                toggleBtn.innerText = isExpanded ? '👆 접기 (닫기)' : '👇 이전 내용 더보기';
+            } else {
+                toggleBtn.style.display = 'none';
+            }
+        }
+
+        // 실시간 데이터 바인딩
+        function listenData(type, listId, toggleBtnId) {
+            const dbRef = ref(database, type);
+            onValue(dbRef, (snapshot) => {
+                rawDataCache[type] = snapshot.val();
+                renderCategory(type, listId, toggleBtnId);
             });
         }
 
-        // 추가 버튼 클릭 이벤트
-        document.getElementById('btnNotice').addEventListener('click', () => handleAdd('notice', 'noticeInput', 'noticeImg', 'noticeSub'));
-        document.getElementById('btnTask').addEventListener('click', () => handleAdd('task', 'taskInput', 'taskImg', 'taskSub', 'taskLink'));
-        document.getElementById('btnCareer').addEventListener('click', () => handleAdd('career', 'careerInput', 'careerImg', 'careerSub'));
+        // 더보기/접기 토글 설정
+        function setupToggle(type, listId, toggleBtnId) {
+            document.getElementById(toggleBtnId).addEventListener('click', () => {
+                expandedState[type] = !expandedState[type];
+                renderCategory(type, listId, toggleBtnId);
+            });
+        }
 
-        // 더보기 버튼 클릭 이벤트 (3개씩 추가 노출)
-        document.getElementById('moreNotice').addEventListener('click', () => { viewLimits.notice += PAGE_SIZE; listenData('notice', 'noticeList', 'moreNotice'); });
-        document.getElementById('moreTask').addEventListener('click', () => { viewLimits.task += PAGE_SIZE; listenData('task', 'taskList', 'moreTask'); });
-        document.getElementById('moreCareer').addEventListener('click', () => { viewLimits.career += PAGE_SIZE; listenData('career', 'careerList', 'moreCareer'); });
+        // 검색 처리
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchKeyword = e.target.value.trim();
+            const infoBox = document.getElementById('searchInfo');
+
+            if (searchKeyword) {
+                infoBox.innerText = `'${searchKeyword}'(으)로 게시물을 검색한 결과입니다.`;
+            } else {
+                infoBox.innerText = '';
+            }
+
+            renderCategory('notice', 'noticeList', 'toggleNotice');
+            renderCategory('task', 'taskList', 'toggleTask');
+            renderCategory('career', 'careerList', 'toggleCareer');
+        });
+
+        // 추가 버튼 클릭 이벤트
+        document.getElementById('btnNotice').addEventListener('click', () => handleAdd('notice', 'noticeInput', 'noticeImg'));
+        document.getElementById('btnTask').addEventListener('click', () => handleAdd('task', 'taskInput', 'taskImg', 'taskSub', 'taskLink'));
+        document.getElementById('btnCareer').addEventListener('click', () => handleAdd('career', 'careerInput', 'careerImg'));
+
+        // 토글 버튼 이벤트 등록
+        setupToggle('notice', 'noticeList', 'toggleNotice');
+        setupToggle('task', 'taskList', 'toggleTask');
+        setupToggle('career', 'careerList', 'toggleCareer');
 
         // 실시간 동기화 시작
-        listenData('notice', 'noticeList', 'moreNotice');
-        listenData('task', 'taskList', 'moreTask');
-        listenData('career', 'careerList', 'moreCareer');
+        listenData('notice', 'noticeList', 'toggleNotice');
+        listenData('task', 'taskList', 'toggleTask');
+        listenData('career', 'careerList', 'toggleCareer');
     </script>
 </body>
 </html>
