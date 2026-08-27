@@ -12,15 +12,29 @@
         h2 { color: #4a90e2; margin-bottom: 10px; border-bottom: 2px solid #e1e8ef; padding-bottom: 5px; }
         
         ul { list-style: none; }
-        li { padding: 10px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; align-items: center; }
+        li { padding: 12px 0; border-bottom: 1px dashed #eee; display: flex; flex-direction: column; gap: 8px; }
+        .item-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        
         .input-group { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
-        .input-group input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1; min-width: 120px; }
+        .input-group input[type="text"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1; min-width: 120px; }
+        .input-group input[type="file"] { padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: #fff; }
         
         button { cursor: pointer; border: none; border-radius: 4px; padding: 6px 12px; font-weight: bold; }
         .btn-add { background: #4a90e2; color: white; }
         .btn-add:hover { background: #357abd; }
         .btn-del { background: #ff4d4d; color: white; padding: 4px 8px; font-size: 0.8rem; }
         .btn-del:hover { background: #cc0000; }
+        
+        /* 작성 시간 및 서브텍스트 스타일 */
+        .time-tag { font-size: 0.8rem; color: #888; margin-left: 8px; font-weight: normal; }
+        .sub-tag { color: #4a90e2; font-weight: bold; margin-left: 6px; }
+
+        /* 더보기 버튼 스타일 */
+        .btn-more { width: 100%; background: #f0f4f9; color: #4a90e2; border: 1px solid #d0dbe7; padding: 8px; margin-top: 10px; font-size: 0.9rem; }
+        .btn-more:hover { background: #e1eaf5; }
+
+        /* 이미지 스타일 */
+        .attached-img { max-width: 200px; max-height: 150px; border-radius: 6px; border: 1px solid #ddd; margin-top: 5px; cursor: pointer; }
 
         /* 수행평가 링크 및 고정 배너 스타일 */
         .fixed-link-banner {
@@ -34,19 +48,10 @@
             align-items: center;
         }
         .fixed-link-banner span { font-weight: bold; color: #1a365d; }
-        .btn-fixed-link {
-            background: #4a90e2;
-            color: white;
-            text-decoration: none;
-            padding: 8px 14px;
-            border-radius: 5px;
-            font-size: 0.9rem;
-            transition: background 0.2s;
-        }
+        .btn-fixed-link { background: #4a90e2; color: white; text-decoration: none; padding: 8px 14px; border-radius: 5px; font-size: 0.9rem; }
         .btn-fixed-link:hover { background: #357abd; }
 
         .task-link { color: #2b6cb0; font-weight: bold; text-decoration: underline; margin-right: 6px; }
-        .task-link:hover { color: #1a365d; }
         .link-badge { background: #ebf8ff; color: #3182ce; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; margin-left: 5px; text-decoration: none; border: 1px solid #bee3f8; }
 
         /* 시간표 테이블 스타일 */
@@ -68,10 +73,11 @@
         <h2>📢 학급 안내사항</h2>
         <div class="input-group">
             <input type="text" id="noticeInput" placeholder="공지 내용 입력">
-            <input type="text" id="noticeSub" placeholder="날짜 (예: 08/27)" style="flex: 0.4;">
+            <input type="file" id="noticeImg" accept="image/*">
             <button class="btn-add" id="btnNotice">추가</button>
         </div>
         <ul id="noticeList"></ul>
+        <button class="btn-more" id="moreNotice" style="display: none;">👇 이전 공지 더보기</button>
     </div>
 
     <!-- 🗓️ 주간 시간표 -->
@@ -93,11 +99,10 @@
         </table>
     </div>
 
-    <!-- 📝 수행평가 일정 (고정 프로그램 링크 반영) -->
+    <!-- 📝 수행평가 일정 -->
     <div class="card">
         <h2>📝 수행평가 일정 및 과제제출</h2>
         
-        <!-- 맨 위에 고정된 프로그램 링크 배너 -->
         <div class="fixed-link-banner">
             <span>📌 수행평가 공지 프로그램</span>
             <a href="https://pyu2010.github.io/notice/" target="_blank" class="btn-fixed-link">🚀 프로그램 바로가기</a>
@@ -105,11 +110,13 @@
 
         <div class="input-group">
             <input type="text" id="taskInput" placeholder="수행평가 내용">
-            <input type="text" id="taskLink" placeholder="추가 링크 주소(선택) https://...">
+            <input type="text" id="taskLink" placeholder="추가 링크 (선택)">
             <input type="text" id="taskSub" placeholder="D-day (예: D-3)" style="flex: 0.3;">
+            <input type="file" id="taskImg" accept="image/*">
             <button class="btn-add" id="btnTask">추가</button>
         </div>
         <ul id="taskList"></ul>
+        <button class="btn-more" id="moreTask" style="display: none;">👇 이전 수행평가 더보기</button>
     </div>
 
     <!-- 🎓 진로 및 진학 정보 -->
@@ -117,10 +124,11 @@
         <h2>🎓 진로 및 진학 정보</h2>
         <div class="input-group">
             <input type="text" id="careerInput" placeholder="진로/진학 소식">
-            <input type="text" id="careerSub" placeholder="날짜/비고" style="flex: 0.4;">
+            <input type="file" id="careerImg" accept="image/*">
             <button class="btn-add" id="btnCareer">추가</button>
         </div>
         <ul id="careerList"></ul>
+        <button class="btn-more" id="moreCareer" style="display: none;">👇 이전 진로정보 더보기</button>
     </div>
 
     <!-- Firebase SDK 불러오기 및 스크립트 실행 -->
@@ -128,7 +136,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // 본인의 Firebase 프로젝트 설정값
         const firebaseConfig = {
             apiKey: "AIzaSyByVK4dbNvtBdAAMdXGokpXeurGwoHop6c",
             authDomain: "classboard-project.firebaseapp.com",
@@ -140,110 +147,150 @@
             measurementId: "G-S2T1FC3GLY"
         };
 
-        // Firebase 및 Database 초기화
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
-        // [일반 항목 추가]
-        function addItem(type, textInputId, subInputId) {
-            const textInput = document.getElementById(textInputId);
-            const subInput = document.getElementById(subInputId);
+        const PAGE_SIZE = 3; 
+        const viewLimits = { notice: PAGE_SIZE, task: PAGE_SIZE, career: PAGE_SIZE };
+
+        // [현재 날짜 및 시간 포맷팅 함수]
+        function getFormattedDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}.${month}.${day} ${hours}:${minutes}`;
+        }
+
+        // [이미지 업로드 함수]
+        async function uploadImage(fileInput) {
+            if (!fileInput || !fileInput.files[0]) return null;
+            
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('https://api.imgbb.com/1/upload?key=6d207722fc3d74d308016f9f30200ad2', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                return result.data.url;
+            } catch (error) {
+                alert('이미지 업로드 실패!');
+                return null;
+            }
+        }
+
+        // [데이터 추가 함수]
+        async function handleAdd(type, textId, fileId, subId = null, linkId = null) {
+            const textInput = document.getElementById(textId);
+            const fileInput = document.getElementById(fileId);
+            const subInput = subId ? document.getElementById(subId) : null;
+            const linkInput = linkId ? document.getElementById(linkId) : null;
 
             if (!textInput.value.trim()) {
                 alert("내용을 입력해주세요!");
                 return;
             }
 
+            let linkUrl = linkInput ? linkInput.value.trim() : '';
+            if (linkUrl && !linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
+                linkUrl = 'https://' + linkUrl;
+            }
+
+            const imageUrl = await uploadImage(fileInput);
+            const createdTime = getFormattedDate(); // 작성 시간 자동 생성
+
             const dbRef = ref(database, type);
             push(dbRef, {
                 text: textInput.value,
-                sub: subInput.value || '-'
+                sub: subInput ? subInput.value : '',
+                createdAt: createdTime,
+                link: linkUrl,
+                img: imageUrl || '',
+                timestamp: Date.now()
             });
 
             textInput.value = '';
-            subInput.value = '';
+            fileInput.value = '';
+            if (subInput) subInput.value = '';
+            if (linkInput) linkInput.value = '';
         }
 
-        // [수행평가 전용 추가 (개별 링크 추가 가능)]
-        function addTaskItem() {
-            const textInput = document.getElementById('taskInput');
-            const linkInput = document.getElementById('taskLink');
-            const subInput = document.getElementById('taskSub');
-
-            if (!textInput.value.trim()) {
-                alert("수행평가 내용을 입력해주세요!");
-                return;
-            }
-
-            let url = linkInput.value.trim();
-            if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
-                url = 'https://' + url;
-            }
-
-            const dbRef = ref(database, 'task');
-            push(dbRef, {
-                text: textInput.value,
-                link: url || '',
-                sub: subInput.value || '-'
-            });
-
-            textInput.value = '';
-            linkInput.value = '';
-            subInput.value = '';
-        }
-
-        // [실시간 조회 및 삭제 기능]
-        function listenData(type, listId) {
+        // [실시간 데이터 조회]
+        function listenData(type, listId, moreBtnId) {
             const dbRef = ref(database, type);
             onValue(dbRef, (snapshot) => {
                 const listElement = document.getElementById(listId);
+                const moreBtn = document.getElementById(moreBtnId);
                 listElement.innerHTML = '';
-                const data = snapshot.val();
+                
+                const rawData = snapshot.val();
+                if (!rawData) {
+                    moreBtn.style.display = 'none';
+                    return;
+                }
 
-                if (data) {
-                    Object.keys(data).forEach((key) => {
-                        const item = data[key];
-                        const li = document.createElement('li');
+                const keys = Object.keys(rawData).reverse();
+                const limit = viewLimits[type];
+                const visibleKeys = keys.slice(0, limit);
 
-                        let contentHtml = '';
-                        if (type === 'task' && item.link) {
-                            contentHtml = `
-                                <span>
-                                    <a href="${item.link}" target="_blank" class="task-link">${item.text}</a>
-                                    <a href="${item.link}" target="_blank" class="link-badge">🚀 바로가기</a>
-                                    <b style="color: #4a90e2; margin-left: 10px;">${item.sub}</b>
-                                </span>
-                            `;
-                        } else {
-                            contentHtml = `
-                                <span>${item.text} <b style="color: #4a90e2; margin-left: 10px;">${item.sub}</b></span>
-                            `;
-                        }
+                visibleKeys.forEach((key) => {
+                    const item = rawData[key];
+                    const li = document.createElement('li');
 
-                        li.innerHTML = `
-                            ${contentHtml}
+                    let titleHtml = item.text;
+                    if (item.link) {
+                        titleHtml = `<a href="${item.link}" target="_blank" class="task-link">${item.text}</a><a href="${item.link}" target="_blank" class="link-badge">🚀 바로가기</a>`;
+                    }
+
+                    // 수동 서브 문구(D-day 등) + 자동 작성 시간 표시
+                    let subHtml = item.sub ? `<span class="sub-tag">${item.sub}</span>` : '';
+                    let timeHtml = item.createdAt ? `<span class="time-tag">(${item.createdAt})</span>` : '';
+
+                    let imgHtml = item.img ? `<a href="${item.img}" target="_blank"><img src="${item.img}" class="attached-img" alt="첨부 이미지"></a>` : '';
+
+                    li.innerHTML = `
+                        <div class="item-header">
+                            <span>${titleHtml} ${subHtml} ${timeHtml}</span>
                             <button class="btn-del">삭제</button>
-                        `;
-                        
-                        li.querySelector('.btn-del').addEventListener('click', () => {
-                            remove(ref(database, `${type}/${key}`));
-                        });
+                        </div>
+                        ${imgHtml}
+                    `;
 
-                        listElement.appendChild(li);
+                    li.querySelector('.btn-del').addEventListener('click', () => {
+                        remove(ref(database, `${type}/${key}`));
                     });
+
+                    listElement.appendChild(li);
+                });
+
+                if (keys.length > limit) {
+                    moreBtn.style.display = 'block';
+                } else {
+                    moreBtn.style.display = 'none';
                 }
             });
         }
 
-        // 버튼 이벤트 등록
-        document.getElementById('btnNotice').addEventListener('click', () => addItem('notice', 'noticeInput', 'noticeSub'));
-        document.getElementById('btnTask').addEventListener('click', addTaskItem);
-        document.getElementById('btnCareer').addEventListener('click', () => addItem('career', 'careerInput', 'careerSub'));
+        // 이벤트 연결 - 추가 버튼
+        document.getElementById('btnNotice').addEventListener('click', () => handleAdd('notice', 'noticeInput', 'noticeImg'));
+        document.getElementById('btnTask').addEventListener('click', () => handleAdd('task', 'taskInput', 'taskImg', 'taskSub', 'taskLink'));
+        document.getElementById('btnCareer').addEventListener('click', () => handleAdd('career', 'careerInput', 'careerImg'));
 
-        // 실시간 수신 시작
-        listenData('notice', 'noticeList');
-        listenData('task', 'taskList');
-        listenData('career', 'careerList');
+        // 이벤트 연결 - 더보기 버튼
+        document.getElementById('moreNotice').addEventListener('click', () => { viewLimits.notice += PAGE_SIZE; listenData('notice', 'noticeList', 'moreNotice'); });
+        document.getElementById('moreTask').addEventListener('click', () => { viewLimits.task += PAGE_SIZE; listenData('task', 'taskList', 'moreTask'); });
+        document.getElementById('moreCareer').addEventListener('click', () => { viewLimits.career += PAGE_SIZE; listenData('career', 'careerList', 'moreCareer'); });
+
+        // 실시간 대기 시작
+        listenData('notice', 'noticeList', 'moreNotice');
+        listenData('task', 'taskList', 'moreTask');
+        listenData('career', 'careerList', 'moreCareer');
     </script>
 </body>
 </html>
