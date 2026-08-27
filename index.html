@@ -1,40 +1,167 @@
-HTML
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>우리반 학급 게시판</title>
+    <title>3학년 1반 실시간 학급 게시판</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
         body { background: #f5f6fa; color: #333; padding: 20px; }
         header { background: #4a90e2; color: white; padding: 20px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
         .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         h2 { color: #4a90e2; margin-bottom: 10px; border-bottom: 2px solid #e1e8ef; padding-bottom: 5px; }
+        
         ul { list-style: none; }
-        li { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
+        li { padding: 10px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; align-items: center; }
+        .input-group { display: flex; gap: 8px; margin-bottom: 15px; }
+        .input-group input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1; }
+        
+        button { cursor: pointer; border: none; border-radius: 4px; padding: 6px 12px; font-weight: bold; }
+        .btn-add { background: #4a90e2; color: white; }
+        .btn-add:hover { background: #357abd; }
+        .btn-del { background: #ff4d4d; color: white; padding: 4px 8px; font-size: 0.8rem; }
+        .btn-del:hover { background: #cc0000; }
+
+        /* 시간표 테이블 스타일 */
+        table { width: 100%; border-collapse: collapse; text-align: center; margin-top: 5px; }
+        th, td { border: 1px solid #e1e8ef; padding: 8px; font-size: 0.95rem; }
+        th { background-color: #f0f4f9; color: #4a90e2; font-weight: bold; }
     </style>
 </head>
 <body>
+
     <header>
-        <h1> 1학년 5반 학급 온라인 게시판</h1>
-        <p>GitHub Pages로 배포된 학급 전용 웹사이트입니다.</p>
+        <h1>3학년 1반 실시간 학급 게시판</h1>
+        <p>버튼으로 추가/삭제 시 다른 모든 친구들에게 실시간으로 반영됩니다.</p>
     </header>
 
+    <!-- 📢 학급 안내사항 -->
     <div class="card">
         <h2>📢 학급 안내사항</h2>
-        <ul>
-            <li><span>이번 주 금요일 학급 청소 구역 변경</span><span>08/27</span></li>
-            <li><span>체험학습 신청서 제출 안내</span><span>08/25</span></li>
-        </ul>
+        <div class="input-group">
+            <input type="text" id="noticeInput" placeholder="공지 내용 입력">
+            <input type="text" id="noticeSub" placeholder="날짜 (예: 08/27)" style="flex: 0.4;">
+            <button class="btn-add" id="btnNotice">추가</button>
+        </div>
+        <ul id="noticeList"></ul>
     </div>
 
+    <!-- 🗓️ 주간 시간표 -->
+    <div class="card">
+        <h2>🗓️ 주간 시간표</h2>
+        <table>
+            <thead>
+                <tr><th>교시</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>국어</td><td>수학</td><td>영어</td><td>체육</td><td>과학</td></tr>
+                <tr><td>2</td><td>수학</td><td>영어</td><td>사회</td><td>국어</td><td>음악</td></tr>
+                <tr><td>3</td><td>영어</td><td>과학</td><td>국어</td><td>수학</td><td>미술</td></tr>
+                <tr><td>4</td><td>사회</td><td>국어</td><td>체육</td><td>영어</td><td>동아리</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 📝 수행평가 일정 -->
     <div class="card">
         <h2>📝 수행평가 일정</h2>
-        <ul>
-            <li><span>국어 독서감상문 제출</span><span style="color:red; font-weight:bold;">D-3</span></li>
-            <li><span>수학 포트폴리오 제출</span><span style="color:red; font-weight:bold;">D-7</span></li>
-        </ul>
+        <div class="input-group">
+            <input type="text" id="taskInput" placeholder="수행평가 내용">
+            <input type="text" id="taskSub" placeholder="D-day (예: D-3)" style="flex: 0.4;">
+            <button class="btn-add" id="btnTask">추가</button>
+        </div>
+        <ul id="taskList"></ul>
     </div>
+
+    <!-- 🎓 진로 및 진학 정보 -->
+    <div class="card">
+        <h2>🎓 진로 및 진학 정보</h2>
+        <div class="input-group">
+            <input type="text" id="careerInput" placeholder="진로/진학 소식">
+            <input type="text" id="careerSub" placeholder="날짜/비고" style="flex: 0.4;">
+            <button class="btn-add" id="btnCareer">추가</button>
+        </div>
+        <ul id="careerList"></ul>
+    </div>
+
+    <!-- Firebase SDK 불러오기 및 스크립트 실행 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // 본인의 Firebase 프로젝트 설정값
+        const firebaseConfig = {
+            apiKey: "AIzaSyByVK4dbNvtBdAAMdXGokpXeurGwoHop6c",
+            authDomain: "classboard-project.firebaseapp.com",
+            databaseURL: "https://classboard-project-default-rtdb.firebaseio.com",
+            projectId: "classboard-project",
+            storageBucket: "classboard-project.firebasestorage.app",
+            messagingSenderId: "360680664355",
+            appId: "1:360680664355:web:bfc9384a595dda2537f096",
+            measurementId: "G-S2T1FC3GLY"
+        };
+
+        // Firebase 및 Database 초기화
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // [추가 기능] Firebase DB에 데이터 저장
+        function addItem(type, textInputId, subInputId) {
+            const textInput = document.getElementById(textInputId);
+            const subInput = document.getElementById(subInputId);
+
+            if (!textInput.value.trim()) {
+                alert("내용을 입력해주세요!");
+                return;
+            }
+
+            const dbRef = ref(database, type);
+            push(dbRef, {
+                text: textInput.value,
+                sub: subInput.value || '-'
+            });
+
+            textInput.value = '';
+            subInput.value = '';
+        }
+
+        // [실시간 조회 및 삭제 기능] DB 변경 시 화면 자동 업데이트
+        function listenData(type, listId) {
+            const dbRef = ref(database, type);
+            onValue(dbRef, (snapshot) => {
+                const listElement = document.getElementById(listId);
+                listElement.innerHTML = '';
+                const data = snapshot.val();
+
+                if (data) {
+                    Object.keys(data).forEach((key) => {
+                        const item = data[key];
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>${item.text} <b style="color: #4a90e2; margin-left: 10px;">${item.sub}</b></span>
+                            <button class="btn-del">삭제</button>
+                        `;
+                        
+                        // 삭제 버튼 클릭 시 해당 데이터 제거
+                        li.querySelector('.btn-del').addEventListener('click', () => {
+                            remove(ref(database, `${type}/${key}`));
+                        });
+
+                        listElement.appendChild(li);
+                    });
+                }
+            });
+        }
+
+        // 버튼 클릭 이벤트 바인딩
+        document.getElementById('btnNotice').addEventListener('click', () => addItem('notice', 'noticeInput', 'noticeSub'));
+        document.getElementById('btnTask').addEventListener('click', () => addItem('task', 'taskInput', 'taskSub'));
+        document.getElementById('btnCareer').addEventListener('click', () => addItem('career', 'careerInput', 'careerSub'));
+
+        // 실시간 동기화 시작
+        listenData('notice', 'noticeList');
+        listenData('task', 'taskList');
+        listenData('career', 'careerList');
+    </script>
 </body>
 </html>
