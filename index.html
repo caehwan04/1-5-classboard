@@ -47,7 +47,8 @@
 
         /* 다중 첨부 이미지 레이아웃 */
         .img-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; }
-        .attached-img { max-width: 200px; max-height: 180px; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; object-fit: cover; }
+        .attached-img { max-width: 180px; max-height: 220px; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; object-fit: cover; transition: transform 0.15s ease-in-out; }
+        .attached-img:hover { transform: scale(1.03); border-color: #4a90e2; }
 
         .fixed-link-banner {
             background-color: #eef6ff;
@@ -74,6 +75,78 @@
         .empty-cell { background-color: #fafafa; color: #ccc; }
         
         .no-result { font-size: 0.9rem; color: #888; padding: 10px 0; text-align: center; }
+
+        /* 이미지 확대 모달(팝업) 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content-wrapper {
+            position: relative;
+            max-width: 90%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .modal-img {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+        }
+        .modal-counter {
+            color: white;
+            margin-top: 10px;
+            font-size: 0.95rem;
+            background: rgba(0,0,0,0.5);
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
+        .modal-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .modal-close:hover { color: #ff6b6b; }
+        .modal-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            font-size: 28px;
+            padding: 15px 18px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+            user-select: none;
+        }
+        .modal-btn:hover { background: rgba(255, 255, 255, 0.5); }
+        .modal-btn-left { left: -60px; }
+        .modal-btn-right { right: -60px; }
+
+        @media (max-width: 600px) {
+            .modal-btn-left { left: 5px; }
+            .modal-btn-right { right: 5px; }
+            .modal-close { top: -35px; right: 5px; }
+        }
     </style>
 </head>
 <body>
@@ -109,7 +182,7 @@
         <button class="btn-toggle" id="toggleNotice" style="display: none;">👇 이전 내용 더보기</button>
     </div>
 
-    <!-- 🗓️ 주간 시간표 (1-5반 반영) -->
+    <!-- 🗓️ 주간 시간표 (105반 반영) -->
     <div class="card">
         <h2>🗓️ 주간 시간표 (1-5반)</h2>
         <table>
@@ -221,6 +294,17 @@
         <button class="btn-toggle" id="toggleCareer" style="display: none;">👇 이전 내용 더보기</button>
     </div>
 
+    <!-- 🖼️ 이미지 확대 모달 팝업 구조 -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content-wrapper">
+            <span class="modal-close" id="modalClose">&times;</span>
+            <button class="modal-btn modal-btn-left" id="modalPrev">&#10094;</button>
+            <img class="modal-img" id="modalImg" src="" alt="확대 이미지">
+            <button class="modal-btn modal-btn-right" id="modalNext">&#10095;</button>
+            <div class="modal-counter" id="modalCounter">1 / 1</div>
+        </div>
+    </div>
+
     <!-- Firebase SDK 및 주요 이벤트 스크립트 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -248,6 +332,68 @@
         };
         let currentKeyword = "";
 
+        // 이미지 모달 관련 변수
+        let currentModalImages = [];
+        let currentModalIndex = 0;
+
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImg');
+        const modalCounter = document.getElementById('modalCounter');
+        const modalClose = document.getElementById('modalClose');
+        const modalPrev = document.getElementById('modalPrev');
+        const modalNext = document.getElementById('modalNext');
+
+        function openModal(images, index) {
+            currentModalImages = images;
+            currentModalIndex = index;
+            updateModalView();
+            modal.style.display = 'flex';
+        }
+
+        function updateModalView() {
+            modalImg.src = currentModalImages[currentModalIndex];
+            modalCounter.innerText = `${currentModalIndex + 1} / ${currentModalImages.length}`;
+            modalPrev.style.display = currentModalImages.length > 1 ? 'block' : 'none';
+            modalNext.style.display = currentModalImages.length > 1 ? 'block' : 'none';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        modalClose.onclick = closeModal;
+        modal.onclick = (e) => {
+            if (e.target === modal || e.target.classList.contains('modal-content-wrapper')) {
+                closeModal();
+            }
+        };
+
+        modalPrev.onclick = (e) => {
+            e.stopPropagation();
+            currentModalIndex = (currentModalIndex - 1 + currentModalImages.length) % currentModalImages.length;
+            updateModalView();
+        };
+
+        modalNext.onclick = (e) => {
+            e.stopPropagation();
+            currentModalIndex = (currentModalIndex + 1) % currentModalImages.length;
+            updateModalView();
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (modal.style.display === 'flex') {
+                if (e.key === 'Escape') closeModal();
+                if (e.key === 'ArrowLeft' && currentModalImages.length > 1) {
+                    currentModalIndex = (currentModalIndex - 1 + currentModalImages.length) % currentModalImages.length;
+                    updateModalView();
+                }
+                if (e.key === 'ArrowRight' && currentModalImages.length > 1) {
+                    currentModalIndex = (currentModalIndex + 1) % currentModalImages.length;
+                    updateModalView();
+                }
+            }
+        });
+
         function getFormattedDate() {
             const now = new Date();
             const year = now.getFullYear();
@@ -258,7 +404,6 @@
             return `${year}.${month}.${day} ${hours}:${minutes}`;
         }
 
-        // 동적 파일창 추가 함수
         window.appendFileInput = function(containerId, inputClassName) {
             const container = document.getElementById(containerId);
             const row = document.createElement('div');
@@ -270,7 +415,6 @@
             container.appendChild(row);
         };
 
-        // 단일 파일 ImgBB 업로드
         async function uploadSingleImage(file) {
             if (!file) return null;
             const formData = new FormData();
@@ -297,7 +441,6 @@
             }
         }
 
-        // 존재하는 모든 파일창에서 모든 파일 끌어 모아 업로드
         async function collectAndUploadAllFiles(containerId) {
             const container = document.getElementById(containerId);
             const fileInputs = container.querySelectorAll('input[type="file"]');
@@ -317,7 +460,6 @@
             return results.filter(url => url !== null);
         }
 
-        // 등록 후 파일 입력칸 초기화
         function resetFileContainer(containerId, inputClassName) {
             const container = document.getElementById(containerId);
             container.innerHTML = `
@@ -342,7 +484,6 @@
                 linkUrl = 'https://' + linkUrl;
             }
 
-            // 모든 이미지 업로드
             const imageUrls = await collectAndUploadAllFiles(containerId);
 
             push(ref(database, type), {
@@ -400,7 +541,6 @@
                 let subHtml = item.sub ? `<span class="sub-tag">${item.sub}</span>` : '';
                 let timeHtml = item.createdAt ? `<span class="time-tag">(${item.createdAt})</span>` : '';
                 
-                // 단일/다중 이미지 통합 구조
                 let imagesList = [];
                 if (item.images && Array.isArray(item.images)) {
                     imagesList = item.images;
@@ -408,19 +548,28 @@
                     imagesList = [item.img];
                 }
 
-                let imgHtml = '';
-                if (imagesList.length > 0) {
-                    const imgTags = imagesList.map(url => `<a href="${url}" target="_blank"><img src="${url}" class="attached-img" alt="첨부 이미지"></a>`).join('');
-                    imgHtml = `<div class="img-container">${imgTags}</div>`;
-                }
-
                 li.innerHTML = `
                     <div class="item-header">
                         <span>${titleHtml} ${subHtml} ${timeHtml}</span>
                         <button class="btn-del">삭제</button>
                     </div>
-                    ${imgHtml}
                 `;
+
+                if (imagesList.length > 0) {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'img-container';
+
+                    imagesList.forEach((url, index) => {
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.className = 'attached-img';
+                        img.alt = '첨부 이미지';
+                        img.onclick = () => openModal(imagesList, index);
+                        imgContainer.appendChild(img);
+                    });
+
+                    li.appendChild(imgContainer);
+                }
 
                 li.querySelector('.btn-del').onclick = () => {
                     remove(ref(database, `${type}/${key}`));
@@ -457,12 +606,10 @@
             };
         }
 
-        // 파일창 추가 버튼 이벤트 연결
         document.getElementById('btnMoreNoticeImg').onclick = () => window.appendFileInput('noticeFileContainer', 'notice-file-input');
         document.getElementById('btnMoreTaskImg').onclick = () => window.appendFileInput('taskFileContainer', 'task-file-input');
         document.getElementById('btnMoreCareerImg').onclick = () => window.appendFileInput('careerFileContainer', 'career-file-input');
 
-        // 검색 기능
         document.getElementById('searchInput').oninput = (e) => {
             currentKeyword = e.target.value.trim();
             const searchInfo = document.getElementById('searchInfo');
@@ -476,7 +623,6 @@
             renderAll();
         };
 
-        // 게시물 추가 버튼 이벤트
         document.getElementById('btnNotice').onclick = () => handleAdd('notice', 'noticeInput', 'noticeFileContainer', 'notice-file-input');
         document.getElementById('btnTask').onclick = () => handleAdd('task', 'taskInput', 'taskFileContainer', 'task-file-input', 'taskSub', 'taskLink');
         document.getElementById('btnCareer').onclick = () => handleAdd('career', 'careerInput', 'careerFileContainer', 'career-file-input');
