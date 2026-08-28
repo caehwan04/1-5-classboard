@@ -15,15 +15,23 @@
         li { padding: 12px 0; border-bottom: 1px dashed #eee; display: flex; flex-direction: column; gap: 8px; }
         .item-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         
-        .input-group { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        .input-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .input-group input[type="text"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1; min-width: 120px; }
-        .input-group input[type="file"] { padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: #fff; }
+        
+        .file-list-container { display: flex; flex-direction: column; gap: 5px; }
+        .file-input-row { display: flex; align-items: center; gap: 5px; }
+        .file-input-row input[type="file"] { padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: #fff; flex: 1; }
         
         button { cursor: pointer; border: none; border-radius: 4px; padding: 6px 12px; font-weight: bold; }
         .btn-add { background: #4a90e2; color: white; }
         .btn-add:hover { background: #357abd; }
         .btn-del { background: #ff4d4d; color: white; padding: 4px 8px; font-size: 0.8rem; }
         .btn-del:hover { background: #cc0000; }
+        .btn-more-file { background: #6c757d; color: white; padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; }
+        .btn-more-file:hover { background: #5a6268; }
+        .btn-remove-file { background: #e0e0e0; color: #333; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; }
+        .btn-remove-file:hover { background: #ccc; }
         
         .time-tag { font-size: 0.8rem; color: #888; margin-left: 8px; font-weight: normal; }
         .sub-tag { color: #4a90e2; font-weight: bold; margin-left: 6px; }
@@ -86,9 +94,16 @@
     <div class="card">
         <h2>📢 학급 안내사항</h2>
         <div class="input-group">
-            <input type="text" id="noticeInput" placeholder="공지 내용 입력">
-            <input type="file" id="noticeImg" accept="image/*" multiple>
-            <button class="btn-add" id="btnNotice">추가</button>
+            <div class="input-row">
+                <input type="text" id="noticeInput" placeholder="공지 내용 입력">
+                <button class="btn-add" id="btnNotice">추가</button>
+            </div>
+            <div class="file-list-container" id="noticeFileContainer">
+                <div class="file-input-row">
+                    <input type="file" class="notice-file" accept="image/*">
+                    <button class="btn-more-file" onclick="addFileInput('noticeFileContainer', 'notice-file')">+ 사진 추가</button>
+                </div>
+            </div>
         </div>
         <ul id="noticeList"></ul>
         <button class="btn-toggle" id="toggleNotice" style="display: none;">👇 이전 내용 더보기</button>
@@ -170,11 +185,18 @@
             <a href="https://pyu2010.github.io/notice/" target="_blank" class="btn-fixed-link">🚀 프로그램 바로가기</a>
         </div>
         <div class="input-group">
-            <input type="text" id="taskInput" placeholder="수행평가 내용">
-            <input type="text" id="taskLink" placeholder="추가 링크 (선택)">
-            <input type="text" id="taskSub" placeholder="D-day (예: D-3)" style="flex: 0.3;">
-            <input type="file" id="taskImg" accept="image/*" multiple>
-            <button class="btn-add" id="btnTask">추가</button>
+            <div class="input-row">
+                <input type="text" id="taskInput" placeholder="수행평가 내용">
+                <input type="text" id="taskLink" placeholder="추가 링크 (선택)">
+                <input type="text" id="taskSub" placeholder="D-day (예: D-3)" style="flex: 0.3;">
+                <button class="btn-add" id="btnTask">추가</button>
+            </div>
+            <div class="file-list-container" id="taskFileContainer">
+                <div class="file-input-row">
+                    <input type="file" class="task-file" accept="image/*">
+                    <button class="btn-more-file" onclick="addFileInput('taskFileContainer', 'task-file')">+ 사진 추가</button>
+                </div>
+            </div>
         </div>
         <ul id="taskList"></ul>
         <button class="btn-toggle" id="toggleTask" style="display: none;">👇 이전 내용 더보기</button>
@@ -184,13 +206,34 @@
     <div class="card">
         <h2>🎓 진로 및 진학 정보</h2>
         <div class="input-group">
-            <input type="text" id="careerInput" placeholder="진로/진학 소식">
-            <input type="file" id="careerImg" accept="image/*" multiple>
-            <button class="btn-add" id="btnCareer">추가</button>
+            <div class="input-row">
+                <input type="text" id="careerInput" placeholder="진로/진학 소식">
+                <button class="btn-add" id="btnCareer">추가</button>
+            </div>
+            <div class="file-list-container" id="careerFileContainer">
+                <div class="file-input-row">
+                    <input type="file" class="career-file" accept="image/*">
+                    <button class="btn-more-file" onclick="addFileInput('careerFileContainer', 'career-file')">+ 사진 추가</button>
+                </div>
+            </div>
         </div>
         <ul id="careerList"></ul>
         <button class="btn-toggle" id="toggleCareer" style="display: none;">👇 이전 내용 더보기</button>
     </div>
+
+    <!-- 파일 선택창 동적 추가 함수 (전역) -->
+    <script>
+        function addFileInput(containerId, className) {
+            const container = document.getElementById(containerId);
+            const row = document.createElement('div');
+            row.className = 'file-input-row';
+            row.innerHTML = `
+                <input type="file" class="${className}" accept="image/*">
+                <button class="btn-remove-file" onclick="this.parentElement.remove()">삭제</button>
+            `;
+            container.appendChild(row);
+        }
+    </script>
 
     <!-- Firebase SDK 및 주요 이벤트 스크립트 -->
     <script type="module">
@@ -231,6 +274,7 @@
 
         // 단일 이미지 업로드 함수
         async function uploadSingleImage(file) {
+            if (!file) return null;
             const formData = new FormData();
             formData.append('image', file);
 
@@ -255,20 +299,38 @@
             }
         }
 
-        // 여러 파일 업로드 처리 함수
-        async function uploadImages(fileInput) {
-            if (!fileInput || !fileInput.files || fileInput.files.length === 0) return [];
-            
-            const files = Array.from(fileInput.files);
+        // 여러 파일 입력 요소에서 이미지 업로드 처리 함수
+        async function uploadMultipleInputs(fileClass) {
+            const inputs = document.querySelectorAll(`.${fileClass}`);
+            const files = [];
+
+            inputs.forEach(input => {
+                if (input.files && input.files[0]) {
+                    files.push(input.files[0]);
+                }
+            });
+
+            if (files.length === 0) return [];
+
             const uploadPromises = files.map(file => uploadSingleImage(file));
             const results = await Promise.all(uploadPromises);
             
             return results.filter(url => url !== null);
         }
 
-        async function handleAdd(type, textId, fileId, subId = null, linkId = null) {
+        // 파일 입력 초기화 함수
+        function resetFileInputs(containerId, className) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div class="file-input-row">
+                    <input type="file" class="${className}" accept="image/*">
+                    <button class="btn-more-file" onclick="addFileInput('${containerId}', '${className}')">+ 사진 추가</button>
+                </div>
+            `;
+        }
+
+        async function handleAdd(type, textId, fileClass, containerId, subId = null, linkId = null) {
             const textInput = document.getElementById(textId);
-            const fileInput = document.getElementById(fileId);
             const subInput = subId ? document.getElementById(subId) : null;
             const linkInput = linkId ? document.getElementById(linkId) : null;
 
@@ -282,7 +344,7 @@
                 linkUrl = 'https://' + linkUrl;
             }
 
-            const imageUrls = await uploadImages(fileInput);
+            const imageUrls = await uploadMultipleInputs(fileClass);
 
             push(ref(database, type), {
                 text: textInput.value,
@@ -294,9 +356,9 @@
             });
 
             textInput.value = '';
-            fileInput.value = '';
             if (subInput) subInput.value = '';
             if (linkInput) linkInput.value = '';
+            resetFileInputs(containerId, fileClass);
         }
 
         function renderSection(type, listId, toggleBtnId) {
@@ -339,7 +401,7 @@
                 let subHtml = item.sub ? `<span class="sub-tag">${item.sub}</span>` : '';
                 let timeHtml = item.createdAt ? `<span class="time-tag">(${item.createdAt})</span>` : '';
                 
-                // 이전 단일 이미지 호환 및 다중 이미지 처리
+                // 기존 단일 이미지 및 신규 다중 이미지 호환
                 let imagesList = [];
                 if (item.images && Array.isArray(item.images)) {
                     imagesList = item.images;
@@ -409,9 +471,9 @@
             renderAll();
         };
 
-        document.getElementById('btnNotice').onclick = () => handleAdd('notice', 'noticeInput', 'noticeImg');
-        document.getElementById('btnTask').onclick = () => handleAdd('task', 'taskInput', 'taskImg', 'taskSub', 'taskLink');
-        document.getElementById('btnCareer').onclick = () => handleAdd('career', 'careerInput', 'careerImg');
+        document.getElementById('btnNotice').onclick = () => handleAdd('notice', 'noticeInput', 'notice-file', 'noticeFileContainer');
+        document.getElementById('btnTask').onclick = () => handleAdd('task', 'taskInput', 'task-file', 'taskFileContainer', 'taskSub', 'taskLink');
+        document.getElementById('btnCareer').onclick = () => handleAdd('career', 'careerInput', 'career-file', 'careerFileContainer');
 
         bindToggle('notice', 'noticeList', 'toggleNotice');
         bindToggle('task', 'taskList', 'toggleTask');
