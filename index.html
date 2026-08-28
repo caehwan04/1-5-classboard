@@ -37,7 +37,9 @@
         .btn-toggle { width: 100%; background: #f0f4f9; color: #4a90e2; border: 1px solid #d0dbe7; padding: 10px; margin-top: 10px; font-size: 0.9rem; border-radius: 6px; }
         .btn-toggle:hover { background: #e1eaf5; }
 
-        .attached-img { max-width: 250px; max-height: 200px; border-radius: 6px; border: 1px solid #ddd; margin-top: 5px; cursor: pointer; object-fit: cover; }
+        /* 다중 첨부 이미지 레이아웃 */
+        .img-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; }
+        .attached-img { max-width: 200px; max-height: 180px; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; object-fit: cover; }
 
         .fixed-link-banner {
             background-color: #eef6ff;
@@ -85,7 +87,7 @@
         <h2>📢 학급 안내사항</h2>
         <div class="input-group">
             <input type="text" id="noticeInput" placeholder="공지 내용 입력">
-            <input type="file" id="noticeImg" accept="image/*">
+            <input type="file" id="noticeImg" accept="image/*" multiple>
             <button class="btn-add" id="btnNotice">추가</button>
         </div>
         <ul id="noticeList"></ul>
@@ -94,7 +96,7 @@
 
     <!-- 🗓️ 주간 시간표 (105반 반영) -->
     <div class="card">
-        <h2>🗓️ 주간 시간표 (1-5반)</h2>
+        <h2>🗓️ 주간 시간표 (105반)</h2>
         <table>
             <thead>
                 <tr><th>교시</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th></tr>
@@ -171,7 +173,7 @@
             <input type="text" id="taskInput" placeholder="수행평가 내용">
             <input type="text" id="taskLink" placeholder="추가 링크 (선택)">
             <input type="text" id="taskSub" placeholder="D-day (예: D-3)" style="flex: 0.3;">
-            <input type="file" id="taskImg" accept="image/*">
+            <input type="file" id="taskImg" accept="image/*" multiple>
             <button class="btn-add" id="btnTask">추가</button>
         </div>
         <ul id="taskList"></ul>
@@ -183,7 +185,7 @@
         <h2>🎓 진로 및 진학 정보</h2>
         <div class="input-group">
             <input type="text" id="careerInput" placeholder="진로/진학 소식">
-            <input type="file" id="careerImg" accept="image/*">
+            <input type="file" id="careerImg" accept="image/*" multiple>
             <button class="btn-add" id="btnCareer">추가</button>
         </div>
         <ul id="careerList"></ul>
@@ -227,10 +229,8 @@
             return `${year}.${month}.${day} ${hours}:${minutes}`;
         }
 
-        // 이미지 업로드
-        async function uploadImage(fileInput) {
-            if (!fileInput || !fileInput.files[0]) return null;
-            const file = fileInput.files[0];
+        // 단일 이미지 업로드 함수
+        async function uploadSingleImage(file) {
             const formData = new FormData();
             formData.append('image', file);
 
@@ -255,6 +255,17 @@
             }
         }
 
+        // 여러 파일 업로드 처리 함수
+        async function uploadImages(fileInput) {
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) return [];
+            
+            const files = Array.from(fileInput.files);
+            const uploadPromises = files.map(file => uploadSingleImage(file));
+            const results = await Promise.all(uploadPromises);
+            
+            return results.filter(url => url !== null);
+        }
+
         async function handleAdd(type, textId, fileId, subId = null, linkId = null) {
             const textInput = document.getElementById(textId);
             const fileInput = document.getElementById(fileId);
@@ -271,14 +282,14 @@
                 linkUrl = 'https://' + linkUrl;
             }
 
-            const imageUrl = await uploadImage(fileInput);
+            const imageUrls = await uploadImages(fileInput);
 
             push(ref(database, type), {
                 text: textInput.value,
                 sub: subInput ? subInput.value : '',
                 createdAt: getFormattedDate(),
                 link: linkUrl,
-                img: imageUrl || '',
+                images: imageUrls,
                 timestamp: Date.now()
             });
 
@@ -327,7 +338,20 @@
 
                 let subHtml = item.sub ? `<span class="sub-tag">${item.sub}</span>` : '';
                 let timeHtml = item.createdAt ? `<span class="time-tag">(${item.createdAt})</span>` : '';
-                let imgHtml = item.img ? `<a href="${item.img}" target="_blank"><img src="${item.img}" class="attached-img" alt="첨부 이미지"></a>` : '';
+                
+                // 이전 단일 이미지 호환 및 다중 이미지 처리
+                let imagesList = [];
+                if (item.images && Array.isArray(item.images)) {
+                    imagesList = item.images;
+                } else if (item.img) {
+                    imagesList = [item.img];
+                }
+
+                let imgHtml = '';
+                if (imagesList.length > 0) {
+                    const imgTags = imagesList.map(url => `<a href="${url}" target="_blank"><img src="${url}" class="attached-img" alt="첨부 이미지"></a>`).join('');
+                    imgHtml = `<div class="img-container">${imgTags}</div>`;
+                }
 
                 li.innerHTML = `
                     <div class="item-header">
