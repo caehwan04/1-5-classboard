@@ -19,8 +19,8 @@
         .input-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .input-group input[type="text"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1; min-width: 120px; }
         
-        .file-list-container { display: flex; flex-direction: column; gap: 5px; }
-        .file-input-row { display: flex; align-items: center; gap: 5px; }
+        .file-list-container { display: flex; flex-direction: column; gap: 6px; margin-top: 5px; }
+        .file-input-row { display: flex; align-items: center; gap: 6px; }
         .file-input-row input[type="file"] { padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: #fff; flex: 1; }
         
         button { cursor: pointer; border: none; border-radius: 4px; padding: 6px 12px; font-weight: bold; }
@@ -28,10 +28,10 @@
         .btn-add:hover { background: #357abd; }
         .btn-del { background: #ff4d4d; color: white; padding: 4px 8px; font-size: 0.8rem; }
         .btn-del:hover { background: #cc0000; }
-        .btn-more-file { background: #6c757d; color: white; padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; }
+        .btn-more-file { background: #6c757d; color: white; padding: 6px 10px; font-size: 0.8rem; border-radius: 4px; white-space: nowrap; }
         .btn-more-file:hover { background: #5a6268; }
-        .btn-remove-file { background: #e0e0e0; color: #333; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; }
-        .btn-remove-file:hover { background: #ccc; }
+        .btn-remove-file { background: #ff6b6b; color: white; padding: 5px 8px; font-size: 0.75rem; border-radius: 4px; }
+        .btn-remove-file:hover { background: #fa5252; }
         
         .time-tag { font-size: 0.8rem; color: #888; margin-left: 8px; font-weight: normal; }
         .sub-tag { color: #4a90e2; font-weight: bold; margin-left: 6px; }
@@ -96,12 +96,12 @@
         <div class="input-group">
             <div class="input-row">
                 <input type="text" id="noticeInput" placeholder="공지 내용 입력">
+                <button class="btn-more-file" id="btnMoreNoticeImg">+ 사진 창 추가</button>
                 <button class="btn-add" id="btnNotice">추가</button>
             </div>
             <div class="file-list-container" id="noticeFileContainer">
                 <div class="file-input-row">
-                    <input type="file" class="notice-file" accept="image/*">
-                    <button class="btn-more-file" onclick="addFileInput('noticeFileContainer', 'notice-file')">+ 사진 추가</button>
+                    <input type="file" class="notice-file-input" accept="image/*" multiple>
                 </div>
             </div>
         </div>
@@ -189,12 +189,12 @@
                 <input type="text" id="taskInput" placeholder="수행평가 내용">
                 <input type="text" id="taskLink" placeholder="추가 링크 (선택)">
                 <input type="text" id="taskSub" placeholder="D-day (예: D-3)" style="flex: 0.3;">
+                <button class="btn-more-file" id="btnMoreTaskImg">+ 사진 창 추가</button>
                 <button class="btn-add" id="btnTask">추가</button>
             </div>
             <div class="file-list-container" id="taskFileContainer">
                 <div class="file-input-row">
-                    <input type="file" class="task-file" accept="image/*">
-                    <button class="btn-more-file" onclick="addFileInput('taskFileContainer', 'task-file')">+ 사진 추가</button>
+                    <input type="file" class="task-file-input" accept="image/*" multiple>
                 </div>
             </div>
         </div>
@@ -208,32 +208,18 @@
         <div class="input-group">
             <div class="input-row">
                 <input type="text" id="careerInput" placeholder="진로/진학 소식">
+                <button class="btn-more-file" id="btnMoreCareerImg">+ 사진 창 추가</button>
                 <button class="btn-add" id="btnCareer">추가</button>
             </div>
             <div class="file-list-container" id="careerFileContainer">
                 <div class="file-input-row">
-                    <input type="file" class="career-file" accept="image/*">
-                    <button class="btn-more-file" onclick="addFileInput('careerFileContainer', 'career-file')">+ 사진 추가</button>
+                    <input type="file" class="career-file-input" accept="image/*" multiple>
                 </div>
             </div>
         </div>
         <ul id="careerList"></ul>
         <button class="btn-toggle" id="toggleCareer" style="display: none;">👇 이전 내용 더보기</button>
     </div>
-
-    <!-- 파일 선택창 동적 추가 함수 (전역) -->
-    <script>
-        function addFileInput(containerId, className) {
-            const container = document.getElementById(containerId);
-            const row = document.createElement('div');
-            row.className = 'file-input-row';
-            row.innerHTML = `
-                <input type="file" class="${className}" accept="image/*">
-                <button class="btn-remove-file" onclick="this.parentElement.remove()">삭제</button>
-            `;
-            container.appendChild(row);
-        }
-    </script>
 
     <!-- Firebase SDK 및 주요 이벤트 스크립트 -->
     <script type="module">
@@ -272,7 +258,19 @@
             return `${year}.${month}.${day} ${hours}:${minutes}`;
         }
 
-        // 단일 이미지 업로드 함수
+        // 동적 파일창 추가 함수
+        window.appendFileInput = function(containerId, inputClassName) {
+            const container = document.getElementById(containerId);
+            const row = document.createElement('div');
+            row.className = 'file-input-row';
+            row.innerHTML = `
+                <input type="file" class="${inputClassName}" accept="image/*" multiple>
+                <button type="button" class="btn-remove-file" onclick="this.parentElement.remove()">삭제</button>
+            `;
+            container.appendChild(row);
+        };
+
+        // 단일 파일 ImgBB 업로드
         async function uploadSingleImage(file) {
             if (!file) return null;
             const formData = new FormData();
@@ -299,37 +297,37 @@
             }
         }
 
-        // 여러 파일 입력 요소에서 이미지 업로드 처리 함수
-        async function uploadMultipleInputs(fileClass) {
-            const inputs = document.querySelectorAll(`.${fileClass}`);
-            const files = [];
+        // 존재하는 모든 파일창에서 모든 파일 끌어 모아 업로드
+        async function collectAndUploadAllFiles(containerId) {
+            const container = document.getElementById(containerId);
+            const fileInputs = container.querySelectorAll('input[type="file"]');
+            const allFiles = [];
 
-            inputs.forEach(input => {
-                if (input.files && input.files[0]) {
-                    files.push(input.files[0]);
+            fileInputs.forEach(input => {
+                if (input.files && input.files.length > 0) {
+                    Array.from(input.files).forEach(f => allFiles.push(f));
                 }
             });
 
-            if (files.length === 0) return [];
+            if (allFiles.length === 0) return [];
 
-            const uploadPromises = files.map(file => uploadSingleImage(file));
+            const uploadPromises = allFiles.map(file => uploadSingleImage(file));
             const results = await Promise.all(uploadPromises);
             
             return results.filter(url => url !== null);
         }
 
-        // 파일 입력 초기화 함수
-        function resetFileInputs(containerId, className) {
+        // 등록 후 파일 입력칸 초기화
+        function resetFileContainer(containerId, inputClassName) {
             const container = document.getElementById(containerId);
             container.innerHTML = `
                 <div class="file-input-row">
-                    <input type="file" class="${className}" accept="image/*">
-                    <button class="btn-more-file" onclick="addFileInput('${containerId}', '${className}')">+ 사진 추가</button>
+                    <input type="file" class="${inputClassName}" accept="image/*" multiple>
                 </div>
             `;
         }
 
-        async function handleAdd(type, textId, fileClass, containerId, subId = null, linkId = null) {
+        async function handleAdd(type, textId, containerId, inputClassName, subId = null, linkId = null) {
             const textInput = document.getElementById(textId);
             const subInput = subId ? document.getElementById(subId) : null;
             const linkInput = linkId ? document.getElementById(linkId) : null;
@@ -344,7 +342,8 @@
                 linkUrl = 'https://' + linkUrl;
             }
 
-            const imageUrls = await uploadMultipleInputs(fileClass);
+            // 모든 이미지 업로드
+            const imageUrls = await collectAndUploadAllFiles(containerId);
 
             push(ref(database, type), {
                 text: textInput.value,
@@ -358,7 +357,7 @@
             textInput.value = '';
             if (subInput) subInput.value = '';
             if (linkInput) linkInput.value = '';
-            resetFileInputs(containerId, fileClass);
+            resetFileContainer(containerId, inputClassName);
         }
 
         function renderSection(type, listId, toggleBtnId) {
@@ -401,7 +400,7 @@
                 let subHtml = item.sub ? `<span class="sub-tag">${item.sub}</span>` : '';
                 let timeHtml = item.createdAt ? `<span class="time-tag">(${item.createdAt})</span>` : '';
                 
-                // 기존 단일 이미지 및 신규 다중 이미지 호환
+                // 단일/다중 이미지 통합 구조
                 let imagesList = [];
                 if (item.images && Array.isArray(item.images)) {
                     imagesList = item.images;
@@ -458,6 +457,12 @@
             };
         }
 
+        // 파일창 추가 버튼 이벤트 연결
+        document.getElementById('btnMoreNoticeImg').onclick = () => window.appendFileInput('noticeFileContainer', 'notice-file-input');
+        document.getElementById('btnMoreTaskImg').onclick = () => window.appendFileInput('taskFileContainer', 'task-file-input');
+        document.getElementById('btnMoreCareerImg').onclick = () => window.appendFileInput('careerFileContainer', 'career-file-input');
+
+        // 검색 기능
         document.getElementById('searchInput').oninput = (e) => {
             currentKeyword = e.target.value.trim();
             const searchInfo = document.getElementById('searchInfo');
@@ -471,9 +476,10 @@
             renderAll();
         };
 
-        document.getElementById('btnNotice').onclick = () => handleAdd('notice', 'noticeInput', 'notice-file', 'noticeFileContainer');
-        document.getElementById('btnTask').onclick = () => handleAdd('task', 'taskInput', 'task-file', 'taskFileContainer', 'taskSub', 'taskLink');
-        document.getElementById('btnCareer').onclick = () => handleAdd('career', 'careerInput', 'career-file', 'careerFileContainer');
+        // 게시물 추가 버튼 이벤트
+        document.getElementById('btnNotice').onclick = () => handleAdd('notice', 'noticeInput', 'noticeFileContainer', 'notice-file-input');
+        document.getElementById('btnTask').onclick = () => handleAdd('task', 'taskInput', 'taskFileContainer', 'task-file-input', 'taskSub', 'taskLink');
+        document.getElementById('btnCareer').onclick = () => handleAdd('career', 'careerInput', 'careerFileContainer', 'career-file-input');
 
         bindToggle('notice', 'noticeList', 'toggleNotice');
         bindToggle('task', 'taskList', 'toggleTask');
